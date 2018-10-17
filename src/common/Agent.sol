@@ -9,8 +9,10 @@ contract Agent is Ownable {
 
   address public defAgent;
 
-  mapping(address => bool) public Agents;
-  
+  mapping(address => bool) public Agents;  
+
+  event UpdatedAgent(address _agent, bool _status);
+
   constructor() public {
     defAgent = msg.sender;
     Agents[msg.sender] = true;
@@ -24,5 +26,7 @@ contract Agent is Ownable {
   function updateAgent(address _agent, bool _status) public onlyOwner {
     assert(_agent != address(0));
     Agents[_agent] = _status;
+
+    emit UpdatedAgent(_agent, _status);
   }  
 }

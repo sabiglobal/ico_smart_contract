@@ -88,7 +88,7 @@ contract CrowdSale is Agent, SafeMath {
   
   /**
    * @dev Constructor sets default parameters
-   * @param _startsAt1 = 1539820800 (18.10.2018)
+   * @param _startsAt1 = 1539993600 (20.10.2018)
    * @param _startsAt2 = 1543104000 (25.11.2018)
    * @param _startsAt3 = 1544313600 (09.12.2018)
    * @param _startsAt4 = 1545523200 (23.12.2018)
@@ -96,7 +96,7 @@ contract CrowdSale is Agent, SafeMath {
    */
   constructor(address _multisigWallet, uint _priceTokenInUSDCents, uint _startsAt1, uint _startsAt2, uint _startsAt3, uint _startsAt4, uint _startsAt5) public {
     
-    duration[0] = 38 days;
+    duration[0] = 36 days;
     duration[1] = 14 days;
     duration[2] = 14 days;
     duration[3] =  9 days;  
