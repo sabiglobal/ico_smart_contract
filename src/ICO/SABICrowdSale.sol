@@ -96,17 +96,11 @@ contract CrowdSale is Agent, SafeMath {
    */
   constructor(address _multisigWallet, uint _priceTokenInUSDCents, uint _startsAt1, uint _startsAt2, uint _startsAt3, uint _startsAt4, uint _startsAt5) public {
     
-    /*duration[0] = 44 days;
-    duration[1] = 13 days;
+    duration[0] = 38 days;
+    duration[1] = 14 days;
     duration[2] = 14 days;
     duration[3] =  9 days;  
-    duration[4] = 32 days;*/
-
-    duration[0] = 5 minutes;
-    duration[1] = 5 minutes;
-    duration[2] = 5 minutes;
-    duration[3] = 5 minutes;
-    duration[4] = 5 minutes;
+    duration[4] = 32 days;
 
     initialization(_multisigWallet, _priceTokenInUSDCents, _startsAt1, _startsAt2, _startsAt3, _startsAt4, _startsAt5);
   }
@@ -120,10 +114,10 @@ contract CrowdSale is Agent, SafeMath {
     require(_multisigWallet != address(0) && _priceTokenInUSDCents > 0);
 
     require(_startsAt1 < _startsAt2 &&
-            _startsAt2 > _startsAt1 + duration[0] &&
-            _startsAt3 > _startsAt2 + duration[1] &&
-            _startsAt4 > _startsAt3 + duration[2] &&
-            _startsAt5 > _startsAt4 + duration[3]);
+            _startsAt2 >= _startsAt1 + duration[0] &&
+            _startsAt3 >= _startsAt2 + duration[1] &&
+            _startsAt4 >= _startsAt3 + duration[2] &&
+            _startsAt5 >= _startsAt4 + duration[3]);
 
     multisigWallet =_multisigWallet;
     startsAt = _startsAt1;
@@ -133,15 +127,15 @@ contract CrowdSale is Agent, SafeMath {
     SoftCap =  200 * (10**6) * multiplier;
     HardCap = 1085 * (10**6) * multiplier;
 
-    cap[hash(State.PrivateSale)] = 150 * (10**6) * multiplier;
-    cap[hash(State.PreSale)]     = 500 * (10**6) * multiplier;
+    cap[hash(State.PrivateSale)] = 150 * (10**6) * multiplier +  60 * (10**6) * multiplier;
+    cap[hash(State.PreSale)]     = 500 * (10**6) * multiplier + 125 * (10**6) * multiplier;
     cap[hash(State.Sale)]        = 250 * (10**6) * multiplier;
 
-    Stages[0] = _Stage({startsAt: _startsAt1, endsIn:_startsAt1 + duration[0], bonus: 4000, min: 1250 * 10**3 * multiplier, tokenAmount: 0});
-    Stages[1] = _Stage({startsAt: _startsAt2, endsIn:_startsAt2 + duration[1], bonus: 2500, min: 2500 * multiplier, tokenAmount: 0});
-    Stages[2] = _Stage({startsAt: _startsAt3, endsIn:_startsAt3 + duration[2], bonus: 2000, min: 2500 * multiplier, tokenAmount: 0});
-    Stages[3] = _Stage({startsAt: _startsAt4, endsIn:_startsAt4 + duration[3], bonus: 1500, min: 2500 * multiplier, tokenAmount: 0});
-    Stages[4] = _Stage({startsAt: _startsAt5, endsIn:_startsAt5 + duration[4], bonus:    0, min: 1000 * multiplier, tokenAmount: 0});
+    Stages[0] = _Stage({startsAt: _startsAt1, endsIn:_startsAt1 + duration[0] - 1, bonus: 4000, min: 1250 * 10**3 * multiplier, tokenAmount: 0});
+    Stages[1] = _Stage({startsAt: _startsAt2, endsIn:_startsAt2 + duration[1] - 1, bonus: 2500, min: 2500 * multiplier, tokenAmount: 0});
+    Stages[2] = _Stage({startsAt: _startsAt3, endsIn:_startsAt3 + duration[2] - 1, bonus: 2000, min: 2500 * multiplier, tokenAmount: 0});
+    Stages[3] = _Stage({startsAt: _startsAt4, endsIn:_startsAt4 + duration[3],     bonus: 1500, min: 2500 * multiplier, tokenAmount: 0});
+    Stages[4] = _Stage({startsAt: _startsAt5, endsIn:_startsAt5 + duration[4],     bonus:    0, min: 1000 * multiplier, tokenAmount: 0});
   }
   
   /** 
@@ -153,8 +147,8 @@ contract CrowdSale is Agent, SafeMath {
     else if (ERC223 == address(0) || RateContract == address(0) || now < startsAt) return State.Preparing;
     else if (now >= Stages[0].startsAt && now <= Stages[0].endsIn) return State.PrivateSale;
     else if (now >= Stages[1].startsAt && now <= Stages[3].endsIn) return State.PreSale;
-    else if (now >= Stages[4].startsAt && now <= Stages[4].endsIn) return State.Sale;
-    else if (now < Stages[0].startsAt) return State.Preparing;
+    else if (now > Stages[3].endsIn && now < Stages[4].startsAt) return State.Preparing;
+    else if (now >= Stages[4].startsAt && now <= Stages[4].endsIn) return State.Sale;    
     else if (isCrowdsaleFull()) return State.Success;
     else return State.Failure;
   }
@@ -208,15 +202,16 @@ contract CrowdSale is Agent, SafeMath {
     uint bonusAmount = 0;
     (tokenAmount, bonusAmount) = calculateTokens(_weiAmount, currentStage);
 
+    tokenAmount = safeAdd(tokenAmount, bonusAmount);
+    
     // Check cap for every State
     if (currentState == State.PrivateSale || currentState == State.Sale) {
       require(safeAdd(Stages[currentStage].tokenAmount, tokenAmount) <= cap[hash(currentState)]);
     } else {
       uint TokenSoldOnPreSale = safeAdd(safeAdd(Stages[1].tokenAmount, Stages[2].tokenAmount), Stages[3].tokenAmount);
+      TokenSoldOnPreSale = safeAdd(TokenSoldOnPreSale, tokenAmount);
       require(TokenSoldOnPreSale <= cap[hash(currentState)]);
     }      
-
-    tokenAmount = safeAdd(tokenAmount, bonusAmount);
 
     // Check HardCap
     require(safeAdd(tokensSold, tokenAmount) <= HardCap);
@@ -284,6 +279,9 @@ contract CrowdSale is Agent, SafeMath {
     return false;
   }
 
+  /**
+   * @dev burn unsold tokens and allow transfer of tokens.
+   */
   function finalize() public onlyOwner {    
     require(!finalized);
     require(now > endsIn);
@@ -292,6 +290,10 @@ contract CrowdSale is Agent, SafeMath {
       // burn unsold tokens 
       ERC223.transfer(address(0), safeSub(HardCap, tokensSold));
     }
+
+    // allow transfer of tokens
+    ERC223.releaseTokenTransfer();
+
     finalized = true;
   }
 

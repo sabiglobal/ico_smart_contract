@@ -6,7 +6,7 @@ import '../common/ERC223.sol';
 /**
  * @title SABIGlobal Token based on ERC223 token
  */
-contract SABIToken is ERC223, Ownable {
+contract SABIToken is ERC223 {
 	
   uint public initialSupply = 1400 * 10**6; // 1.4 billion
 
@@ -17,6 +17,7 @@ contract SABIToken is ERC223, Ownable {
     name = _name;
     symbol = _symbol;
     decimals = 8;
+    crowdsale = _crowdsale;
 
     bytes memory empty;    
     totalSupply = initialSupply*uint(10)**decimals;
@@ -53,7 +54,8 @@ contract SABIToken is ERC223, Ownable {
   * Owner may issue new tokens
   */
   function mint(address _receiver, uint _amount) public onlyOwner {
-    balances[_receiver] = safeAdd(balances[_receiver], _amount);    
+    balances[_receiver] = safeAdd(balances[_receiver], _amount);
+    totalSupply = safeAdd(totalSupply, _amount);
     bytes memory empty;    
     emit Transfer(0x0, _receiver, _amount, empty);    
   }
