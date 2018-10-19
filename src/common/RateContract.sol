@@ -31,6 +31,7 @@ contract RateContract is Agent, SafeMath {
 
     constructor() public {
         addCurrency("ETH", "Ethereum", 0, 2); // 0x455448
+        addCurrency("BTC", "Bitcoin", 0, 8); // 0x425443
     }
 
     // returns the Currency
